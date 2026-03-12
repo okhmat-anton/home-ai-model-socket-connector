@@ -14,12 +14,13 @@ install:
 		echo "Python 3.11 already installed"; \
 	else \
 		echo "Python 3.11 not found, installing from source (3-5 min)..."; \
+		rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
 		cd /tmp && \
 		curl -O https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz && \
 		tar xzf Python-3.11.11.tgz && \
 		cd Python-3.11.11 && \
 		echo ">> Running ./configure ..." && \
-		./configure --prefix=/usr/local 2>&1 | tail -3 && \
+		./configure --prefix=/usr/local && \
 		echo ">> Compiling (this takes a few minutes) ..." && \
 		make -j$$(nproc) && \
 		echo ">> Installing ..." && \
