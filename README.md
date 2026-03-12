@@ -28,19 +28,24 @@ sudo yum install -y git   # AL2
 git clone <repo-url> ~/home-ai-model-socket-connector
 cd ~/home-ai-model-socket-connector
 
-# 2. Install dependencies + set up systemd
+# 2. Open ports in Lightsail Networking (IPv4 Firewall):
+#    TCP 10666 — REST API + Socket.IO
+#    TCP 10667 — HTTPS proxy
+#    (TCP 80 + 443 if using SSL with make add-domain)
+
+# 3. Install dependencies + set up systemd
 make install
 
-# 3. Generate keys
+# 4. Generate keys
 make gen-keys
 
-# 4. Edit .env if needed
+# 5. Edit .env if needed
 nano .env
 
-# 5. Start the service
+# 6. Start the service
 make run
 
-# 6. (Optional) Add SSL for your domain
+# 7. (Optional) Add SSL for your domain
 make add-domain domain=your-domain.com
 ```
 
@@ -107,6 +112,7 @@ Send a prompt to the model.
   "prompt": "Hello!",
   "model": "llama3",
   "stream": false,
+  "request_id": "my-correlation-id",
   "parameters": {
     "temperature": 0.7,
     "max_tokens": 2048
@@ -114,11 +120,13 @@ Send a prompt to the model.
 }
 ```
 
-Fields `model`, `stream`, `parameters` are optional.
+Fields `model`, `stream`, `parameters`, `request_id` are optional.
+If `request_id` is omitted the server generates a UUID. Use it to correlate responses when sending multiple requests concurrently.
 
 **Response:**
 ```json
 {
+  "request_id": "my-correlation-id",
   "response": "Hello! How can I help you?",
   "model": "llama3",
   "usage": {
@@ -131,6 +139,34 @@ Fields `model`, `stream`, `parameters` are optional.
 ```
 
 With `"stream": true` the response is delivered as Server-Sent Events (SSE).
+Every SSE chunk includes `request_id` for correlation.
+
+### Concurrent Async Requests
+
+You can fire multiple requests simultaneously. Each response is matched by `request_id`:
+
+```python
+import asyncio, httpx
+
+async def ask(client, prompt, rid):
+    resp = await client.post("/ask", json={
+        "prompt": prompt,
+        "request_id": rid,
+    })
+    return resp.json()  # {"request_id": rid, "response": "...", ...}
+
+async def main():
+    headers = {"Authorization": "Bearer <USER_API_KEY>"}
+    async with httpx.AsyncClient(
+        base_url="https://server:10666", headers=headers
+    ) as c:
+        tasks = [ask(c, f"Question {i}", f"q-{i}") for i in range(10)]
+        results = await asyncio.gather(*tasks)
+        for r in results:
+            print(r["request_id"], r["response"][:50])
+
+asyncio.run(main())
+```
 
 ### `GET /models`
 List connected models.
@@ -304,9 +340,16 @@ venv/bin/pytest tests/ -v --tb=short
 
 ## Networking (Lightsail)
 
-Open the following ports in Lightsail Networking:
-- **TCP 10666** — REST API + Socket.IO
-- **TCP 10667** — HTTPS proxy
+Open the following ports in **Lightsail Console → Instance → Networking → IPv4 Firewall → Add rule**:
+
+| Port | Protocol | Purpose |
+|------|----------|---------|
+| **10666** | TCP | REST API + Socket.IO |
+| **10667** | TCP | HTTPS proxy |
+| **80** | TCP | HTTP (only if using `make add-domain` for SSL) |
+| **443** | TCP | HTTPS (only if using `make add-domain` for SSL) |
+
+> **Without these rules the ports are blocked by default and connections will time out.**
 
 ---
 

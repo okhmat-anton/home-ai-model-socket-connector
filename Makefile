@@ -36,6 +36,12 @@ install:
 	sudo systemctl daemon-reload
 	sudo systemctl enable $(SERVICE)
 	@echo "=== Installation complete ==="
+	@echo ""
+	@echo "IMPORTANT: Open these ports in Lightsail Networking (IPv4 Firewall):"
+	@echo "  TCP 10666 — REST API + Socket.IO"
+	@echo "  TCP 10667 — HTTPS proxy"
+	@echo "  (TCP 80 + 443 if using make add-domain for SSL)"
+	@echo ""
 	@echo "Edit .env and run: make gen-keys && make run"
 
 run:

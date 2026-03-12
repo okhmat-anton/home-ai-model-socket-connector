@@ -39,14 +39,14 @@ async def ask(body: AskRequest, _user: str = Depends(require_user_auth)):
     else:
         available = await registry.list_names()
         if not available:
-            request_id = str(uuid.uuid4())
+            request_id = body.request_id or str(uuid.uuid4())
             detail = "No models connected"
             error_store.add(request_id, "model_not_found", detail)
             logger.warning("model_not_found", request_id=request_id, detail=detail)
             raise HTTPException(status_code=404, detail=detail, headers={"X-Request-ID": request_id})
         model_name = available[0]
 
-    request_id = str(uuid.uuid4())
+    request_id = body.request_id or str(uuid.uuid4())
 
     if not await registry.is_connected(model_name):
         available = await registry.list_names()
@@ -135,6 +135,7 @@ async def _handle_sync(sio, sid, request_id, prompt, params, model_name) -> AskR
     logger.info("ask_response", request_id=request_id, model=model_name, elapsed=round(elapsed, 2))
     usage_data = data.get("usage", {})
     return AskResponse(
+        request_id=request_id,
         response=data.get("response", ""),
         model=model_name,
         usage=UsageInfo(**usage_data) if usage_data else UsageInfo(),
@@ -162,17 +163,17 @@ async def _handle_stream(sio, sid, request_id, prompt, params, model_name):
                 except asyncio.TimeoutError:
                     error_store.add(request_id, "stream_timeout", "Stream timed out", model=model_name)
                     logger.error("stream_timeout", request_id=request_id, model=model_name)
-                    yield f"data: {json.dumps({'error': 'timeout'})}\n\n"
+                    yield f"data: {json.dumps({'request_id': request_id, 'error': 'timeout'})}\n\n"
                     break
 
                 if "error" in chunk:
                     error_store.add(request_id, "stream_error", chunk["error"], model=model_name)
                     logger.error("stream_error", request_id=request_id, error=chunk["error"])
-                    yield f"data: {json.dumps({'error': chunk['error']})}\n\n"
+                    yield f"data: {json.dumps({'request_id': request_id, 'error': chunk['error']})}\n\n"
                     break
 
                 done = chunk.get("done", False)
-                payload: dict = {"token": chunk.get("token", ""), "done": done}
+                payload: dict = {"request_id": request_id, "token": chunk.get("token", ""), "done": done}
                 if done:
                     payload["usage"] = chunk.get("usage", {})
                     payload["elapsed_seconds"] = round(time.monotonic() - start, 2)

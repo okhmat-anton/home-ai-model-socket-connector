@@ -68,6 +68,8 @@ async def test_ask_valid_prompt(client, auth_headers, connected_model):
     assert data["model"] == "test-model"
     assert data["usage"]["total_tokens"] == 15
     assert data["elapsed_seconds"] >= 0
+    assert "request_id" in data
+    assert len(data["request_id"]) > 0
 
 
 @pytest.mark.asyncio
@@ -85,6 +87,31 @@ async def test_ask_uses_first_connected_model(client, auth_headers, connected_mo
 
     assert resp.status_code == 200
     assert resp.json()["model"] == "test-model"
+    assert "request_id" in resp.json()
+
+
+@pytest.mark.asyncio
+async def test_ask_client_provided_request_id(client, auth_headers, connected_model):
+    """Client can provide their own request_id for correlation."""
+    custom_id = "my-custom-request-123"
+
+    async def mock_emit(event, data, to=None, namespace=None):
+        request_id = data["request_id"]
+        fut = pending_requests.get(request_id)
+        if fut and not fut.done():
+            fut.set_result({"request_id": request_id, "response": "ok", "usage": {}})
+
+    with patch("src.main.sio") as mock_sio:
+        mock_sio.emit = AsyncMock(side_effect=mock_emit)
+        resp = await client.post(
+            "/ask",
+            json={"prompt": "hello", "request_id": custom_id},
+            headers=auth_headers,
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["request_id"] == custom_id
 
 
 @pytest.mark.asyncio

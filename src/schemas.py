@@ -18,6 +18,7 @@ class AskRequest(BaseModel):
     model: str | None = None
     stream: bool = False
     parameters: InferenceParameters | None = None
+    request_id: str | None = Field(None, description="Optional client-provided ID for request correlation")
 
 
 class UsageInfo(BaseModel):
@@ -27,6 +28,7 @@ class UsageInfo(BaseModel):
 
 
 class AskResponse(BaseModel):
+    request_id: str
     response: str
     model: str
     usage: UsageInfo
@@ -70,6 +72,7 @@ class TokenResponse(BaseModel):
 # ── SSE chunk ────────────────────────────────────────────────────────────────
 
 class StreamChunk(BaseModel):
+    request_id: str
     token: str
     done: bool
     usage: UsageInfo | None = None

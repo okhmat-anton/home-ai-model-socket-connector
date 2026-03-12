@@ -23,6 +23,7 @@ Request body (JSON):
     "prompt": "Your question here",
     "model": "{default_model}",
     "stream": false,
+    "request_id": "my-id-123",
     "parameters": {{
       "temperature": 0.7,
       "max_tokens": 2048,
@@ -30,8 +31,10 @@ Request body (JSON):
     }}
   }}
 
-Fields model, stream, parameters are optional.
+Fields model, stream, parameters, request_id are optional.
 If model is not specified, the first connected model is used by default.
+If request_id is not specified, the server generates a UUID automatically.
+You can use request_id to correlate responses when sending multiple requests concurrently.
 
 ### Example (Python):
 
@@ -48,6 +51,7 @@ print(resp.json()["response"])
 
 ### Response (JSON):
   {{
+    "request_id": "my-id-123",
     "response": "Model response text...",
     "model": "{default_model}",
     "usage": {{
@@ -80,9 +84,9 @@ with httpx.stream(
 ```
 
 Each chunk:
-  data: {{"token": "part of the text", "done": false}}
+  data: {{"request_id": "my-id-123", "token": "part of the text", "done": false}}
 Last chunk:
-  data: {{"token": "", "done": true, "usage": {{...}}, "elapsed_seconds": 4.2}}
+  data: {{"request_id": "my-id-123", "token": "", "done": true, "usage": {{...}}, "elapsed_seconds": 4.2}}
 
 ---
 
