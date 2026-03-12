@@ -52,19 +52,24 @@ restart:
 
 update:
 	@echo "=== Updating ==="
-	git stash
 	@PREV=$$(git rev-parse HEAD) && \
-	git pull --ff-only origin main || (echo "Pull failed" && git stash pop && exit 1); \
-	$(PIP) install -r requirements.txt; \
-	if $(MAKE) test; then \
-		sudo systemctl restart $(SERVICE); \
-		echo "=== Update complete ==="; \
+	git stash || true && \
+	if git pull --ff-only origin main; then \
+		$(PIP) install -r requirements.txt && \
+		if $(MAKE) test; then \
+			sudo systemctl restart $(SERVICE) && \
+			echo "=== Update complete ==="; \
+		else \
+			echo "Tests failed, rolling back to $$PREV..." && \
+			git reset --hard $$PREV && \
+			$(PIP) install -r requirements.txt && \
+			sudo systemctl restart $(SERVICE) && \
+			echo "=== Rolled back ===" && \
+			exit 1; \
+		fi; \
 	else \
-		echo "Tests failed, rolling back to $$PREV..."; \
-		git reset --hard $$PREV; \
-		$(PIP) install -r requirements.txt; \
-		sudo systemctl restart $(SERVICE); \
-		echo "=== Rolled back ==="; \
+		echo "Pull failed" && \
+		git stash pop 2>/dev/null || true && \
 		exit 1; \
 	fi
 
