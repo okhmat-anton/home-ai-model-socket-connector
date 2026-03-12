@@ -8,28 +8,8 @@ PYTEST := $(VENV)/bin/pytest
 SERVICE := home-ai-connector
 
 install:
-	@echo "=== Installing dependencies (Amazon Linux 2) ==="
-	sudo yum install -y git gcc openssl11 openssl11-devel bzip2-devel libffi-devel zlib-devel readline-devel sqlite-devel
-	@if command -v python3.11 >/dev/null 2>&1 && python3.11 -c 'import ssl' 2>/dev/null; then \
-		echo "Python 3.11 already installed (with SSL)"; \
-	else \
-		echo "Python 3.11 not found or missing SSL, installing from source (3-5 min)..."; \
-		sudo rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
-		cd /tmp && \
-		curl -O https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz && \
-		tar xzf Python-3.11.11.tgz && \
-		cd Python-3.11.11 && \
-		echo ">> Running ./configure ..." && \
-		export CFLAGS="$$(pkg-config --cflags openssl11)" && \
-		export LDFLAGS="$$(pkg-config --ldflags openssl11)" && \
-		./configure --prefix=/usr/local --with-openssl-rpath=auto && \
-		echo ">> Compiling (this takes a few minutes) ..." && \
-		make -j$$(nproc) && \
-		echo ">> Installing ..." && \
-		sudo make altinstall && \
-		cd / && sudo rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
-		echo "Python 3.11 installed to /usr/local/bin/python3.11"; \
-	fi
+	@echo "=== Installing dependencies (Amazon Linux 2023) ==="
+	sudo dnf install -y git python3.11 python3.11-pip python3.11-devel gcc
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
