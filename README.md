@@ -1,104 +1,104 @@
 # Home AI Model Socket Connector
 
-Двунаправленный мост между локальной ИИ-моделью и внешним миром.
+A bidirectional bridge between a local AI model and the outside world.
 
-## Два режима работы
+## Two Operating Modes
 
-| Режим | Направление | Транспорт | Порт |
-|-------|------------|-----------|------|
-| **Входящий** | user → server → model | REST API + Socket.IO | 10666 |
-| **Исходящий** | model → server → internet | HTTPS-прокси (HTTP CONNECT) | 10667 |
+| Mode | Direction | Transport | Port |
+|------|-----------|-----------|------|
+| **Incoming** | user → server → model | REST API + Socket.IO | 10666 |
+| **Outgoing** | model → server → internet | HTTPS proxy (HTTP CONNECT) | 10667 |
 
-### Входящий режим
+### Incoming Mode
 
-Пользователь отправляет REST-запрос → сервер пересылает задание модели по Socket.IO → модель отвечает → сервер возвращает ответ пользователю.
+A user sends a REST request → the server forwards it to the model via Socket.IO → the model responds → the server returns the response to the user.
 
-### Исходящий режим
+### Outgoing Mode
 
-Модель настраивает стандартный HTTPS-прокси (`HTTPS_PROXY`) и выходит в интернет через IP сервера. Аутентификация — логин/пароль (Basic Auth на `Proxy-Authorization`).
+The model configures a standard HTTPS proxy (`HTTPS_PROXY`) and accesses the internet through the server's IP. Authentication is username/password (Basic Auth via `Proxy-Authorization`).
 
 ---
 
-## Быстрый старт (Amazon Linux 2 / Lightsail)
+## Quick Start (Amazon Linux 2 / Lightsail)
 
 ```bash
-# 1. Клонировать репозиторий
+# 1. Clone the repository
 git clone <repo-url> ~/home-ai-model-socket-connector
 cd ~/home-ai-model-socket-connector
 
-# 2. Установить зависимости + настроить systemd
+# 2. Install dependencies + set up systemd
 make install
 
-# 3. Сгенерировать ключи
+# 3. Generate keys
 make gen-keys
 
-# 4. Отредактировать .env если нужны правки
+# 4. Edit .env if needed
 nano .env
 
-# 5. Запустить
+# 5. Start the service
 make run
 ```
 
-## Makefile-команды
+## Makefile Commands
 
-| Команда | Описание |
-|---------|----------|
-| `make install` | Установка Python 3.11, venv, зависимостей, systemd-сервиса |
-| `make run` | Запуск сервиса |
-| `make stop` | Остановка сервиса |
-| `make restart` | Перезапуск |
-| `make update` | `git pull` + обновление зависимостей + авто-откат при ошибках тестов |
-| `make test` | Запуск тестов |
-| `make logs` | Просмотр логов (`journalctl -f`) |
-| `make status` | Статус systemd-сервиса |
-| `make gen-keys` | Генерация случайных ключей → `.env` |
-| `make uninstall` | Удаление systemd-сервиса |
+| Command | Description |
+|---------|-------------|
+| `make install` | Install Python 3.11, venv, dependencies, and systemd service |
+| `make run` | Start the service |
+| `make stop` | Stop the service |
+| `make restart` | Restart the service |
+| `make update` | `git pull` + update dependencies + auto-rollback on test failures |
+| `make test` | Run tests |
+| `make logs` | View logs (`journalctl -f`) |
+| `make status` | Show systemd service status |
+| `make gen-keys` | Generate random keys → `.env` |
+| `make uninstall` | Remove the systemd service |
 
 ---
 
-## Конфигурация (.env)
+## Configuration (.env)
 
-Скопировать из `.env.example`:
+Copy from `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Переменная | По умолчанию | Описание |
-|-----------|-------------|----------|
-| `HOST` | `0.0.0.0` | Адрес привязки сервера |
-| `PORT` | `10666` | Порт REST API + Socket.IO |
-| `BASE_MODEL` | `llama3` | Модель по умолчанию |
-| `MODEL_API_KEY` | — | API-ключ для подключения модели (Socket.IO) |
-| `USER_API_KEY` | — | API-ключ для пользователей (REST) |
-| `SECRET_KEY` | — | Секрет для подписи JWT-токенов |
-| `REQUEST_TIMEOUT` | `1800` | Таймаут ответа модели (сек) |
-| `MAX_CONCURRENT_REQUESTS` | `10` | Макс. параллельных запросов к модели |
-| `PROXY_PORT` | `10667` | Порт HTTPS-прокси |
-| `PROXY_USER` | `proxy` | Логин прокси |
-| `PROXY_PASSWORD` | — | Пароль прокси |
-| `PROXY_ALLOWED_DOMAINS` | `*` | Список доменов через `,` или `*` |
-| `PROXY_MAX_CONNECTIONS` | `50` | Макс. одновременных прокси-соединений |
-| `LOG_LEVEL` | `INFO` | Уровень логирования |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HOST` | `0.0.0.0` | Server bind address |
+| `PORT` | `10666` | REST API + Socket.IO port |
+| `BASE_MODEL` | `llama3` | Default model |
+| `MODEL_API_KEY` | — | API key for model connection (Socket.IO) |
+| `USER_API_KEY` | — | API key for users (REST) |
+| `SECRET_KEY` | — | Secret for signing JWT tokens |
+| `REQUEST_TIMEOUT` | `1800` | Model response timeout (seconds) |
+| `MAX_CONCURRENT_REQUESTS` | `10` | Max concurrent requests to model |
+| `PROXY_PORT` | `10667` | HTTPS proxy port |
+| `PROXY_USER` | `proxy` | Proxy username |
+| `PROXY_PASSWORD` | — | Proxy password |
+| `PROXY_ALLOWED_DOMAINS` | `*` | Comma-separated domain list or `*` for all |
+| `PROXY_MAX_CONNECTIONS` | `50` | Max concurrent proxy connections |
+| `LOG_LEVEL` | `INFO` | Log level |
 
 ---
 
 ## REST API
 
 ### `GET /health`
-Статус сервера (без авторизации).
+Server status (no authorization required).
 
 ### `GET /instruction`
-Текстовая инструкция для ИИ-агента с актуальными значениями.
+Plain-text instruction for an AI agent with live values.
 
 ### `POST /ask`
-Отправка запроса к модели.
+Send a prompt to the model.
 
-**Заголовок:** `Authorization: Bearer <USER_API_KEY>`
+**Header:** `Authorization: Bearer <USER_API_KEY>`
 
 ```json
 {
-  "prompt": "Привет!",
+  "prompt": "Hello!",
   "model": "llama3",
   "stream": false,
   "parameters": {
@@ -108,12 +108,12 @@ cp .env.example .env
 }
 ```
 
-Поля `model`, `stream`, `parameters` — опциональные.
+Fields `model`, `stream`, `parameters` are optional.
 
-**Ответ:**
+**Response:**
 ```json
 {
-  "response": "Привет! Чем могу помочь?",
+  "response": "Hello! How can I help you?",
   "model": "llama3",
   "usage": {
     "prompt_tokens": 5,
@@ -124,23 +124,23 @@ cp .env.example .env
 }
 ```
 
-С `"stream": true` — ответ приходит как Server-Sent Events (SSE).
+With `"stream": true` the response is delivered as Server-Sent Events (SSE).
 
 ### `GET /models`
-Список подключённых моделей.
+List connected models.
 
-**Заголовок:** `Authorization: Bearer <USER_API_KEY>`
+**Header:** `Authorization: Bearer <USER_API_KEY>`
 
 ### `POST /auth/token`
-Получение JWT-токена (опционально).
+Obtain a JWT token (optional).
 
 ---
 
-## Socket.IO (для модели)
+## Socket.IO (Model Side)
 
-Модель подключается к namespace `/model` на порту 10666.
+The model connects to the `/model` namespace on port 10666.
 
-**Подключение:**
+**Connection:**
 ```python
 import socketio
 
@@ -152,18 +152,18 @@ await sio.connect(
 )
 ```
 
-**События:**
-- `inference_request` → сервер отправляет запрос модели
-- `inference_response` → модель возвращает результат
-- `inference_chunk` → модель отправляет часть потокового ответа
-- `inference_error` → модель сообщает об ошибке
-- `ping` / `pong` → keepalive
+**Events:**
+- `inference_request` — server sends an inference request to the model
+- `inference_response` — model returns the full result
+- `inference_chunk` — model sends a streaming chunk
+- `inference_error` — model reports an error
+- `ping` / `pong` — keepalive
 
 ---
 
-## HTTPS-прокси (для модели)
+## HTTPS Proxy (Model Side)
 
-Порт `10667`. Аутентификация: `Proxy-Authorization: Basic <base64(user:pass)>`.
+Port `10667`. Authentication: `Proxy-Authorization: Basic <base64(user:pass)>`.
 
 ```python
 import httpx
@@ -174,7 +174,7 @@ client = httpx.Client(
 resp = client.get("https://api.example.com/data")
 ```
 
-Или через переменные окружения:
+Or via environment variables:
 
 ```bash
 export HTTPS_PROXY=http://proxy:password@server-ip:10667
@@ -183,7 +183,7 @@ export HTTP_PROXY=http://proxy:password@server-ip:10667
 
 ---
 
-## Структура проекта
+## Project Structure
 
 ```
 ├── .env.example
@@ -226,24 +226,24 @@ export HTTP_PROXY=http://proxy:password@server-ip:10667
 
 ---
 
-## Тесты
+## Tests
 
 ```bash
 make test
-# или напрямую
+# or directly
 venv/bin/pytest tests/ -v --tb=short
 ```
 
 ---
 
-## Сеть (Lightsail)
+## Networking (Lightsail)
 
-В Lightsail Networking откройте:
+Open the following ports in Lightsail Networking:
 - **TCP 10666** — REST API + Socket.IO
-- **TCP 10667** — HTTPS-прокси
+- **TCP 10667** — HTTPS proxy
 
 ---
 
-## Лицензия
+## License
 
 MIT
