@@ -17,7 +17,6 @@ async def test_health_structure(client):
     assert "version" in data
     assert "uptime_seconds" in data
     assert isinstance(data["connected_models"], list)
-    assert "base_model" in data
 
 
 @pytest.mark.asyncio

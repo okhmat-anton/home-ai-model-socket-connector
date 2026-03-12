@@ -86,10 +86,16 @@ gen-keys:
 		sed -i "s|^USER_API_KEY=.*|USER_API_KEY=$$USER_KEY|" .env && \
 		sed -i "s|^PROXY_PASSWORD=.*|PROXY_PASSWORD=$$PROXY_PASS|" .env && \
 		sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$$SECRET|" .env && \
+		PROXY_USR=$$(grep '^PROXY_USER=' .env | cut -d= -f2) && \
+		echo "" && \
 		echo "MODEL_API_KEY=$$MODEL_KEY" && \
 		echo "USER_API_KEY=$$USER_KEY" && \
-		echo "PROXY_PASSWORD=$$PROXY_PASS" && \
 		echo "SECRET_KEY=$$SECRET" && \
+		echo "" && \
+		echo "PROXY_USER=$$PROXY_USR" && \
+		echo "PROXY_PASSWORD=$$PROXY_PASS" && \
+		echo "Proxy URL: http://$$PROXY_USR:$$PROXY_PASS@<server-ip>:10667" && \
+		echo "" && \
 		echo "Keys written to .env"
 
 uninstall:

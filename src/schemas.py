@@ -38,7 +38,7 @@ class AskResponse(BaseModel):
 class ModelInfo(BaseModel):
     name: str
     status: str = "connected"
-    is_base: bool = False
+    is_default: bool = False
 
 
 class ModelsResponse(BaseModel):
@@ -52,7 +52,6 @@ class HealthResponse(BaseModel):
     version: str
     uptime_seconds: float
     connected_models: list[str]
-    base_model: str
 
 
 # ── Auth ─────────────────────────────────────────────────────────────────────

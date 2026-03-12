@@ -14,7 +14,6 @@ from httpx import ASGITransport, AsyncClient
 os.environ.update({
     "HOST": "0.0.0.0",
     "PORT": "10666",
-    "BASE_MODEL": "test-model",
     "MODEL_API_KEY": "test-model-key",
     "USER_API_KEY": "test-user-key",
     "SECRET_KEY": "test-secret-key-0123456789abcdef",

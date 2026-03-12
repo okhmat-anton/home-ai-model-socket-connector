@@ -29,16 +29,18 @@ async def test_models_with_connected(client, auth_headers, connected_model):
 
 
 @pytest.mark.asyncio
-async def test_models_base_flag(client, auth_headers, connected_model):
+async def test_models_default_flag(client, auth_headers, connected_model):
     resp = await client.get("/models", headers=auth_headers)
     models = resp.json()["models"]
-    assert models[0]["is_base"] is True
+    assert models[0]["is_default"] is True
 
 
 @pytest.mark.asyncio
-async def test_models_non_base_flag(client, auth_headers):
-    await registry.register("other-model", "sid-other", 1000.0)
+async def test_models_non_default_flag(client, auth_headers):
+    await registry.register("first-model", "sid-first", 1000.0)
+    await registry.register("second-model", "sid-other", 1001.0)
     resp = await client.get("/models", headers=auth_headers)
     models = resp.json()["models"]
-    m = next(m for m in models if m["name"] == "other-model")
-    assert m["is_base"] is False
+    assert models[0]["is_default"] is True
+    m = next(m for m in models if m["name"] == "second-model")
+    assert m["is_default"] is False

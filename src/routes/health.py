@@ -6,7 +6,6 @@ import time
 
 from fastapi import APIRouter
 
-from src.config import settings
 from src.model_registry import registry
 from src.schemas import HealthResponse
 
@@ -24,5 +23,4 @@ async def health() -> HealthResponse:
         version=VERSION,
         uptime_seconds=round(time.time() - _start_time, 1),
         connected_models=models,
-        base_model=settings.base_model,
     )

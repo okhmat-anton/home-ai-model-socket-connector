@@ -75,7 +75,6 @@ cp .env.example .env
 |----------|---------|-------------|
 | `HOST` | `0.0.0.0` | Server bind address |
 | `PORT` | `10666` | REST API + Socket.IO port |
-| `BASE_MODEL` | `llama3` | Default model |
 | `MODEL_API_KEY` | — | API key for model connection (Socket.IO) |
 | `USER_API_KEY` | — | API key for users (REST) |
 | `SECRET_KEY` | — | Secret for signing JWT tokens |

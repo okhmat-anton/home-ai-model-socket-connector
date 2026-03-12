@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 10666
-    base_model: str = "llama3"
 
     # Auth — model (Socket.IO)
     model_api_key: str = ""

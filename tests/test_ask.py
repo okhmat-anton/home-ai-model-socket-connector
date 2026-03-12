@@ -15,7 +15,7 @@ from src.socketio_handlers import pending_requests
 async def test_ask_no_model_connected(client, auth_headers):
     resp = await client.post("/ask", json={"prompt": "hello"}, headers=auth_headers)
     assert resp.status_code == 404
-    assert "not connected" in resp.json()["detail"].lower()
+    assert "no models connected" in resp.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -71,8 +71,8 @@ async def test_ask_valid_prompt(client, auth_headers, connected_model):
 
 
 @pytest.mark.asyncio
-async def test_ask_uses_base_model(client, auth_headers, connected_model):
-    """Without specifying model, should use base_model."""
+async def test_ask_uses_first_connected_model(client, auth_headers, connected_model):
+    """Without specifying model, should use the first connected model."""
     async def mock_emit(event, data, to=None, namespace=None):
         request_id = data["request_id"]
         fut = pending_requests.get(request_id)
@@ -94,7 +94,6 @@ async def test_ask_timeout(client, auth_headers, connected_model):
         mock_sio.emit = AsyncMock()  # Does not resolve the future
         with patch("src.routes.ask.settings") as mock_settings:
             mock_settings.request_timeout = 0.1
-            mock_settings.base_model = "test-model"
             mock_settings.max_concurrent_requests = 10
             resp = await client.post("/ask", json={"prompt": "hello"}, headers=auth_headers)
 

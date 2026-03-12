@@ -33,7 +33,18 @@ def _get_semaphore() -> asyncio.Semaphore:
 
 @router.post("/ask", response_model=AskResponse)
 async def ask(body: AskRequest, _user: str = Depends(require_user_auth)):
-    model_name = body.model or settings.base_model
+    # If no model specified, use the first connected model
+    if body.model:
+        model_name = body.model
+    else:
+        available = await registry.list_names()
+        if not available:
+            request_id = str(uuid.uuid4())
+            detail = "No models connected"
+            error_store.add(request_id, "model_not_found", detail)
+            logger.warning("model_not_found", request_id=request_id, detail=detail)
+            raise HTTPException(status_code=404, detail=detail, headers={"X-Request-ID": request_id})
+        model_name = available[0]
 
     request_id = str(uuid.uuid4())
 

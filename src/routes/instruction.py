@@ -20,12 +20,13 @@ async def get_instruction() -> str:
     """Return usage instruction with live values substituted."""
     template = _TEMPLATE_PATH.read_text(encoding="utf-8")
     models = await registry.list_names()
-    models_str = ", ".join(models) if models else "(none connected)"
+    models_str = ", ".join(models) if models else "(none connected yet)"
+    default_model = models[0] if models else "<model_name>"
 
     return template.format(
         server_ip=settings.host if settings.host != "0.0.0.0" else "<server_ip>",
         port=settings.port,
         proxy_port=settings.proxy_port,
-        base_model=settings.base_model,
+        default_model=default_model,
         connected_models=models_str,
     )
