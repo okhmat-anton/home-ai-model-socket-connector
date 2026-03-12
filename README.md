@@ -39,6 +39,9 @@ nano .env
 
 # 5. Start the service
 make run
+
+# 6. (Optional) Add SSL for your domain
+make add-domain domain=your-domain.com
 ```
 
 ## Makefile Commands
@@ -54,6 +57,8 @@ make run
 | `make logs` | View logs (`journalctl -f`) |
 | `make status` | Show systemd service status |
 | `make gen-keys` | Generate random keys → `.env` |
+| `make add-domain domain=X` | Install Caddy + auto-SSL for domain X (Let's Encrypt) |
+| `make remove-domain` | Remove Caddy and SSL config |
 | `make uninstall` | Remove the systemd service |
 
 ---

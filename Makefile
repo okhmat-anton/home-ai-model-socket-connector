@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: install run stop restart update test logs status gen-keys uninstall
+.PHONY: install run stop restart update test logs status gen-keys uninstall add-domain remove-domain
 
 PYTHON := python3.11
 VENV := venv
@@ -98,3 +98,66 @@ uninstall:
 	sudo rm -f /etc/systemd/system/$(SERVICE).service
 	sudo systemctl daemon-reload
 	@echo "$(SERVICE) uninstalled"
+
+add-domain:
+	@if [ -z "$(domain)" ]; then echo "Usage: make add-domain domain=example.com"; exit 1; fi
+	@echo "=== Setting up HTTPS for $(domain) ==="
+	@if ! command -v caddy >/dev/null 2>&1; then \
+		echo ">> Installing Caddy..."; \
+		sudo yum install -y yum-utils 2>/dev/null || true; \
+		curl -fsSL https://getcaddy.com -o /tmp/getcaddy.sh && \
+		chmod +x /tmp/getcaddy.sh && \
+		sudo /tmp/getcaddy.sh || (\
+			echo ">> Trying alternative install..."; \
+			curl -fsSL -o /tmp/caddy.tar.gz https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_2.8.4_linux_amd64.tar.gz && \
+			sudo tar xzf /tmp/caddy.tar.gz -C /usr/local/bin caddy && \
+			sudo chmod +x /usr/local/bin/caddy && \
+			rm -f /tmp/caddy.tar.gz \
+		); \
+		rm -f /tmp/getcaddy.sh; \
+	else \
+		echo ">> Caddy already installed: $$(caddy version)"; \
+	fi
+	@echo ">> Writing Caddyfile..."
+	@sudo mkdir -p /etc/caddy
+	@echo '$(domain) {' | sudo tee /etc/caddy/Caddyfile > /dev/null
+	@echo '    reverse_proxy localhost:10666' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '    @websocket {' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '        header Connection *Upgrade*' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '        header Upgrade websocket' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '    }' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '    reverse_proxy @websocket localhost:10666' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo '}' | sudo tee -a /etc/caddy/Caddyfile > /dev/null
+	@echo ">> Setting up Caddy systemd service..."
+	@sudo groupadd --system caddy 2>/dev/null || true
+	@sudo useradd --system --gid caddy --create-home --home-dir /var/lib/caddy --shell /usr/sbin/nologin caddy 2>/dev/null || true
+	@echo '[Unit]' | sudo tee /etc/systemd/system/caddy.service > /dev/null
+	@echo 'Description=Caddy web server' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'After=network.target' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo '' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo '[Service]' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'User=caddy' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'Group=caddy' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'Restart=on-failure' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'AmbientCapabilities=CAP_NET_BIND_SERVICE' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo '' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo '[Install]' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	@echo 'WantedBy=multi-user.target' | sudo tee -a /etc/systemd/system/caddy.service > /dev/null
+	sudo systemctl daemon-reload
+	sudo systemctl enable caddy
+	sudo systemctl restart caddy
+	@echo "=== HTTPS active for $(domain) ==="
+	@echo "SSL certificate will be auto-provisioned by Let's Encrypt."
+	@echo "Make sure port 80 and 443 are open in your Lightsail firewall!"
+
+remove-domain:
+	@echo "=== Removing Caddy ==="
+	sudo systemctl stop caddy 2>/dev/null || true
+	sudo systemctl disable caddy 2>/dev/null || true
+	sudo rm -f /etc/systemd/system/caddy.service
+	sudo rm -rf /etc/caddy
+	sudo systemctl daemon-reload
+	@echo "Caddy removed"
