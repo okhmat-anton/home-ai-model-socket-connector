@@ -19,13 +19,12 @@ The model configures a standard HTTPS proxy (`HTTPS_PROXY`) and accesses the int
 
 ---
 
-## Quick Start (Amazon Linux 2023 / Lightsail)
+## Quick Start (AWS Lightsail)
 
 ```bash
-# 0. Install git (if not already installed)
-sudo dnf install -y git
-
 # 1. Clone the repository
+sudo yum install -y git   # AL2
+# sudo dnf install -y git  # AL2023
 git clone <repo-url> ~/home-ai-model-socket-connector
 cd ~/home-ai-model-socket-connector
 
@@ -46,7 +45,7 @@ make run
 
 | Command | Description |
 |---------|-------------|
-| `make install` | Install Python 3.11 (dnf), venv, dependencies, and systemd service |
+| `make install` | Install Python 3.11, venv, dependencies, and systemd service (AL2 + AL2023) |
 | `make run` | Start the service |
 | `make stop` | Stop the service |
 | `make restart` | Restart the service |

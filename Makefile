@@ -7,9 +7,27 @@ PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
 SERVICE := home-ai-connector
 
+# Standalone Python 3.11 binary (no compilation needed)
+PYTHON_STANDALONE_URL := https://github.com/indygreg/python-build-standalone/releases/download/20240726/cpython-3.11.9+20240726-x86_64-unknown-linux-gnu-install_only.tar.gz
+
 install:
-	@echo "=== Installing dependencies (Amazon Linux 2023) ==="
-	sudo dnf install -y git python3.11 python3.11-pip python3.11-devel gcc
+	@echo "=== Installing dependencies ==="
+	@if command -v dnf >/dev/null 2>&1; then \
+		echo ">> Detected dnf (Amazon Linux 2023)"; \
+		sudo dnf install -y git python3.11 python3.11-pip python3.11-devel gcc; \
+	elif command -v yum >/dev/null 2>&1; then \
+		echo ">> Detected yum (Amazon Linux 2)"; \
+		sudo yum install -y git gcc; \
+	fi
+	@if command -v python3.11 >/dev/null 2>&1; then \
+		echo ">> Python 3.11 found: $$(python3.11 --version)"; \
+	else \
+		echo ">> Python 3.11 not found — downloading standalone build..."; \
+		curl -fSL -o /tmp/python3.11.tar.gz $(PYTHON_STANDALONE_URL) && \
+		sudo tar xzf /tmp/python3.11.tar.gz -C /usr/local --strip-components=1 && \
+		rm -f /tmp/python3.11.tar.gz && \
+		echo ">> Installed: $$(python3.11 --version)"; \
+	fi
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
