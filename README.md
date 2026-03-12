@@ -22,6 +22,9 @@ The model configures a standard HTTPS proxy (`HTTPS_PROXY`) and accesses the int
 ## Quick Start (Amazon Linux 2 / Lightsail)
 
 ```bash
+# 0. Install git (if not already installed)
+sudo yum install -y git
+
 # 1. Clone the repository
 git clone <repo-url> ~/home-ai-model-socket-connector
 cd ~/home-ai-model-socket-connector
