@@ -9,10 +9,21 @@ SERVICE := home-ai-connector
 
 install:
 	@echo "=== Installing dependencies (Amazon Linux 2) ==="
-	sudo yum install -y python3.11 python3.11-pip git 2>/dev/null || \
-		(echo "python3.11 not in yum, trying amazon-linux-extras..." && \
-		 sudo amazon-linux-extras install python3.11 -y 2>/dev/null) || \
-		(echo "ERROR: Cannot install Python 3.11. Install it manually." && exit 1)
+	sudo yum install -y git gcc openssl-devel bzip2-devel libffi-devel zlib-devel readline-devel sqlite-devel
+	@if command -v python3.11 >/dev/null 2>&1; then \
+		echo "Python 3.11 already installed"; \
+	else \
+		echo "Python 3.11 not found, installing from source..."; \
+		cd /tmp && \
+		curl -sO https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz && \
+		tar xzf Python-3.11.11.tgz && \
+		cd Python-3.11.11 && \
+		./configure --enable-optimizations --prefix=/usr/local 2>&1 | tail -1 && \
+		make -j$$(nproc) 2>&1 | tail -1 && \
+		sudo make altinstall 2>&1 | tail -1 && \
+		cd / && rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
+		echo "Python 3.11 installed to /usr/local/bin/python3.11"; \
+	fi
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
