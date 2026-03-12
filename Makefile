@@ -14,7 +14,7 @@ install:
 		echo "Python 3.11 already installed"; \
 	else \
 		echo "Python 3.11 not found, installing from source (3-5 min)..."; \
-		rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
+		sudo rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
 		cd /tmp && \
 		curl -O https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz && \
 		tar xzf Python-3.11.11.tgz && \
@@ -25,7 +25,7 @@ install:
 		make -j$$(nproc) && \
 		echo ">> Installing ..." && \
 		sudo make altinstall && \
-		cd / && rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
+		cd / && sudo rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
 		echo "Python 3.11 installed to /usr/local/bin/python3.11"; \
 	fi
 	$(PYTHON) -m venv $(VENV)
