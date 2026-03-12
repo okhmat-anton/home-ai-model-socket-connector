@@ -1,0 +1,18 @@
+[Unit]
+Description=Home AI Model Socket Connector
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/home-ai-model-socket-connector
+EnvironmentFile=/home/ec2-user/home-ai-model-socket-connector/.env
+ExecStart=/home/ec2-user/home-ai-model-socket-connector/venv/bin/python -m src.main
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=home-ai-connector
+
+[Install]
+WantedBy=multi-user.target

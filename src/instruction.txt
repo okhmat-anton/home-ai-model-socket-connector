@@ -1,0 +1,137 @@
+# Home AI Model Socket Connector — Инструкция для ИИ-агента
+
+Этот сервис — мост между тобой (ИИ-моделью) и внешним миром.
+У него два режима:
+
+1. ВХОДЯЩИЙ — пользователь отправляет тебе запрос через сервер.
+2. ИСХОДЯЩИЙ — ты можешь выходить в интернет через HTTPS-прокси сервера.
+
+Сервер: {server_ip}:{port}
+Прокси: {server_ip}:{proxy_port}
+Модель по умолчанию: {base_model}
+Подключённые модели: {connected_models}
+
+---
+
+## 1. Отправить запрос к ИИ-модели (ВХОДЯЩИЙ РЕЖИМ)
+
+POST http://{server_ip}:{port}/ask
+Заголовок: Authorization: Bearer <USER_API_KEY>
+
+Тело запроса (JSON):
+  {{
+    "prompt": "Твой вопрос здесь",
+    "model": "{base_model}",
+    "stream": false,
+    "parameters": {{
+      "temperature": 0.7,
+      "max_tokens": 2048,
+      "top_p": 0.9
+    }}
+  }}
+
+Поля model, stream, parameters — опциональные.
+Если model не указан — используется "{base_model}".
+
+### Пример кода (Python):
+
+```python
+import httpx
+
+resp = httpx.post(
+    "http://{server_ip}:{port}/ask",
+    headers={{"Authorization": "Bearer <USER_API_KEY>"}},
+    json={{"prompt": "Привет, как дела?"}},
+)
+print(resp.json()["response"])
+```
+
+### Ответ (JSON):
+  {{
+    "response": "Текст ответа модели...",
+    "model": "{base_model}",
+    "usage": {{
+      "prompt_tokens": 12,
+      "completion_tokens": 345,
+      "total_tokens": 357
+    }},
+    "elapsed_seconds": 4.2
+  }}
+
+---
+
+## 2. Потоковый запрос (SSE)
+
+Отправь тот же POST /ask с "stream": true.
+Ответ — Server-Sent Events (text/event-stream).
+
+```python
+import httpx
+
+with httpx.stream(
+    "POST",
+    "http://{server_ip}:{port}/ask",
+    headers={{"Authorization": "Bearer <USER_API_KEY>"}},
+    json={{"prompt": "Расскажи историю", "stream": true}},
+) as resp:
+    for line in resp.iter_lines():
+        if line.startswith("data: "):
+            print(line[6:])
+```
+
+Каждый chunk:
+  data: {{"token": "часть текста", "done": false}}
+Последний chunk:
+  data: {{"token": "", "done": true, "usage": {{...}}, "elapsed_seconds": 4.2}}
+
+---
+
+## 3. Выход в интернет через HTTPS-прокси (ИСХОДЯЩИЙ РЕЖИМ)
+
+Сервер работает как стандартный HTTP/HTTPS прокси на порту {proxy_port}.
+Аутентификация: логин и пароль (Proxy-Authorization Basic).
+
+Настрой переменные окружения:
+  HTTPS_PROXY=http://<proxy_user>:<proxy_pass>@{server_ip}:{proxy_port}
+  HTTP_PROXY=http://<proxy_user>:<proxy_pass>@{server_ip}:{proxy_port}
+
+Или укажи прокси в коде:
+
+```python
+import httpx
+
+client = httpx.Client(
+    proxy="http://<proxy_user>:<proxy_pass>@{server_ip}:{proxy_port}"
+)
+resp = client.get("https://api.example.com/data")
+print(resp.text)
+```
+
+Все запросы через прокси идут от IP сервера (твой IP скрыт).
+
+---
+
+## 4. Список доступных моделей
+
+GET http://{server_ip}:{port}/models
+Заголовок: Authorization: Bearer <USER_API_KEY>
+
+---
+
+## 5. Проверка статуса сервера
+
+GET http://{server_ip}:{port}/health
+(авторизация не требуется)
+
+---
+
+## 6. Коды ошибок
+
+- 401 — неверная авторизация
+- 404 — модель не подключена
+- 408 — таймаут ответа модели
+- 422 — невалидный запрос
+- 429 — слишком много запросов
+- 502 — модель недоступна
+- 407 — неверные credentials прокси
+- 403 — домен заблокирован в прокси
