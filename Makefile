@@ -13,14 +13,17 @@ install:
 	@if command -v python3.11 >/dev/null 2>&1; then \
 		echo "Python 3.11 already installed"; \
 	else \
-		echo "Python 3.11 not found, installing from source..."; \
+		echo "Python 3.11 not found, installing from source (3-5 min)..."; \
 		cd /tmp && \
-		curl -sO https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz && \
+		curl -O https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz && \
 		tar xzf Python-3.11.11.tgz && \
 		cd Python-3.11.11 && \
-		./configure --enable-optimizations --prefix=/usr/local 2>&1 | tail -1 && \
-		make -j$$(nproc) 2>&1 | tail -1 && \
-		sudo make altinstall 2>&1 | tail -1 && \
+		echo ">> Running ./configure ..." && \
+		./configure --prefix=/usr/local 2>&1 | tail -3 && \
+		echo ">> Compiling (this takes a few minutes) ..." && \
+		make -j$$(nproc) && \
+		echo ">> Installing ..." && \
+		sudo make altinstall && \
 		cd / && rm -rf /tmp/Python-3.11.11 /tmp/Python-3.11.11.tgz && \
 		echo "Python 3.11 installed to /usr/local/bin/python3.11"; \
 	fi

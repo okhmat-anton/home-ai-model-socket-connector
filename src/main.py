@@ -70,6 +70,7 @@ app.add_middleware(
 
 from src.routes.ask import router as ask_router
 from src.routes.auth import router as auth_router
+from src.routes.errors import router as errors_router
 from src.routes.health import router as health_router
 from src.routes.instruction import router as instruction_router
 from src.routes.models import router as models_router
@@ -79,6 +80,7 @@ app.include_router(health_router)
 app.include_router(ask_router)
 app.include_router(models_router)
 app.include_router(auth_router)
+app.include_router(errors_router)
 
 # ── Mount Socket.IO as ASGI sub-app ─────────────────────────────────────────
 

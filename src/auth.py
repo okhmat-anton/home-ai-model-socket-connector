@@ -6,11 +6,14 @@ import time
 from typing import Annotated
 
 import jwt
+import structlog
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.config import settings
+from src.error_store import error_store
 
+logger = structlog.get_logger()
 _bearer = HTTPBearer(auto_error=False)
 
 
@@ -41,6 +44,9 @@ async def require_user_auth(
 ) -> str:
     """Verify user API key or JWT token. Returns user identifier."""
     if credentials is None:
+        client_ip = request.client.host if request.client else "unknown"
+        error_store.add("auth", "auth_missing", "Missing authorization header", client_ip=client_ip, path=request.url.path)
+        logger.warning("auth_missing", client_ip=client_ip, path=request.url.path)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header")
 
     token = credentials.credentials
@@ -54,4 +60,7 @@ async def require_user_auth(
     if subject:
         return subject
 
+    client_ip = request.client.host if request.client else "unknown"
+    error_store.add("auth", "auth_invalid", "Invalid or expired token", client_ip=client_ip, path=request.url.path)
+    logger.warning("auth_invalid", client_ip=client_ip, path=request.url.path)
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")

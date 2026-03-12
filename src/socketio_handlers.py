@@ -9,6 +9,7 @@ import socketio
 import structlog
 
 from src.config import settings
+from src.error_store import error_store
 from src.model_registry import registry
 
 logger = structlog.get_logger()
@@ -77,14 +78,18 @@ class ModelNamespace(socketio.AsyncNamespace):
         request_id = data.get("request_id")
         if not request_id:
             return
+        error_msg = data.get("error", "Unknown error")
+        error_code = data.get("code", "ERROR")
+        error_store.add(request_id, "model_inference_error", error_msg, code=error_code, sid=sid)
+        logger.error("model_inference_error", request_id=request_id, error=error_msg, code=error_code, sid=sid)
         # Resolve futures
         fut = pending_requests.pop(request_id, None)
         if fut and not fut.done():
-            fut.set_exception(InferenceError(data.get("error", "Unknown error"), data.get("code", "ERROR")))
+            fut.set_exception(InferenceError(error_msg, error_code))
         # Also signal stream queues
         queue = pending_streams.get(request_id)
         if queue:
-            await queue.put({"error": data.get("error", "Unknown error"), "code": data.get("code", "ERROR")})
+            await queue.put({"error": error_msg, "code": error_code})
 
     async def on_pong(self, sid: str, data: dict) -> None:
         pass  # keepalive ack

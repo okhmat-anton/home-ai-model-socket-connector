@@ -137,6 +137,64 @@ List connected models.
 ### `POST /auth/token`
 Obtain a JWT token (optional).
 
+### `GET /errors`
+Query the error log. Returns recent errors, filterable by `request_id` or event type.
+
+**Header:** `Authorization: Bearer <USER_API_KEY>`
+
+**Query parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `request_id` | Filter errors by specific request ID |
+| `event` | Filter by event type (e.g. `ask_timeout`, `auth_invalid`, `inference_error`) |
+| `limit` | Max entries to return (default: 50, max: 500) |
+
+**Examples:**
+```bash
+# Get all recent errors
+curl -H "Authorization: Bearer <KEY>" http://server:10666/errors
+
+# Look up errors for a specific request
+curl -H "Authorization: Bearer <KEY>" "http://server:10666/errors?request_id=<uuid>"
+
+# Get all timeout errors
+curl -H "Authorization: Bearer <KEY>" "http://server:10666/errors?event=ask_timeout"
+```
+
+**Response:**
+```json
+{
+  "total": 1,
+  "errors": [
+    {
+      "request_id": "a1b2c3d4-...",
+      "timestamp": 1741782000.0,
+      "iso_time": "2026-03-12T10:00:00Z",
+      "event": "ask_timeout",
+      "detail": "Model response timed out",
+      "model": "llama3",
+      "timeout": 1800
+    }
+  ]
+}
+```
+
+**Error event types:**
+
+| Event | Description |
+|-------|-------------|
+| `model_not_found` | Requested model is not connected |
+| `model_disconnected` | Model disconnected during a request |
+| `ask_timeout` | Model didn't respond within timeout |
+| `inference_error` | Model returned an error |
+| `model_inference_error` | Model reported an error via Socket.IO |
+| `stream_timeout` | Streaming response timed out |
+| `stream_error` | Error during streaming response |
+| `rate_limited` | Too many concurrent requests |
+| `auth_missing` | Request missing authorization header |
+| `auth_invalid` | Invalid or expired token |
+
 ---
 
 ## Socket.IO (Model Side)
@@ -203,6 +261,7 @@ export HTTP_PROXY=http://proxy:password@server-ip:10667
 │   ├── config.py
 │   ├── schemas.py
 │   ├── auth.py
+│   ├── error_store.py
 │   ├── model_registry.py
 │   ├── socketio_handlers.py
 │   ├── proxy_server.py
@@ -213,7 +272,8 @@ export HTTP_PROXY=http://proxy:password@server-ip:10667
 │       ├── health.py
 │       ├── ask.py
 │       ├── models.py
-│       └── auth.py
+│       ├── auth.py
+│       └── errors.py
 └── tests/
     ├── conftest.py
     ├── test_auth.py
