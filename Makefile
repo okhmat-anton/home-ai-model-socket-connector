@@ -19,10 +19,10 @@ install:
 		echo ">> Detected yum (Amazon Linux 2)"; \
 		sudo yum install -y git gcc; \
 	fi
-	@if command -v python3.11 >/dev/null 2>&1; then \
-		echo ">> Python 3.11 found: $$(python3.11 --version)"; \
+	@if command -v python3.11 >/dev/null 2>&1 && python3.11 -c 'import ssl' 2>/dev/null; then \
+		echo ">> Python 3.11 found (with SSL): $$(python3.11 --version)"; \
 	else \
-		echo ">> Python 3.11 not found — downloading standalone build..."; \
+		echo ">> Python 3.11 not found or missing SSL — downloading standalone build..."; \
 		curl -fSL -o /tmp/python3.11.tar.gz $(PYTHON_STANDALONE_URL) && \
 		sudo tar xzf /tmp/python3.11.tar.gz -C /usr/local --strip-components=1 && \
 		rm -f /tmp/python3.11.tar.gz && \
